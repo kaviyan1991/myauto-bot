@@ -7,13 +7,11 @@ CHANNEL_ID = "@GeorgIranRadar"
 API_URL = "https://api2.myauto.ge/en/products"
 CACHE_FILE = "sent_cars.txt"
 
-# 🎯 کد جدید و ضد ارور برای مدیریت حافظه ربات
 def load_cache():
     if not os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "w") as f:
             f.write("")
         return set()
-        
     with open(CACHE_FILE, "r") as f:
         return set(f.read().splitlines())
 
@@ -28,7 +26,7 @@ def scrape_myauto_direct():
     params = {
         "TypeID": "0", "ForRent": "0", "CurrencyID": "3", "Page": "1",
         "PriceFrom": "6000", "PriceTo": "35000", 
-        "YearFrom": "2017", "YearTo": "2026", # سال ساخت از ۲۰۱۷ تا ۲۰۲۶
+        "YearFrom": "2017", "YearTo": "2026",
         "LocID": "2", "HasVin": "1", "HideNegotiable": "1", "FuelTypeID": "1,3,6"
     }
     
@@ -47,7 +45,6 @@ def scrape_myauto_direct():
         if response.status_code == 200:
             data = response.json()
             items = data.get("data", {}).get("items", [])
-            
             cache_updated = False
             
             for item in items[:15]:
@@ -56,14 +53,14 @@ def scrape_myauto_direct():
                     if not car_id or car_id in sent_cars: 
                         continue
                     
-                    # 🔑 فیلتر هوشمند کد شاسی (VIN): حذف ستاره‌ها برای خنثی کردن فریب فایروال
+                    # 🔑 فیلتر نهایی VIN: حذف ستاره‌ها و چک کردن دقیق کاراکتر اول
                     vin_code = str(item.get("vin", "")).strip()
                     actual_vin = vin_code.replace("*", "") 
                     
-                    if actual_vin and actual_vin[0].isdigit(): 
+                    # اگر کاراکتر اول بعد از حذف ستاره‌ها عدد بود (0 تا 9)، آگهی رد می‌شود
+                    if actual_vin and actual_vin[0] in "0123456789": 
                         continue
                     
-                    # 📊 فیلتر سال ساخت
                     prod_year = item.get("prod_year", "")
                     if prod_year:
                         try:
@@ -87,7 +84,6 @@ def scrape_myauto_direct():
                     }
                     
                     send_to_telegram(title, price, link, details)
-                    
                     sent_cars.add(car_id)
                     cache_updated = True
                 except: 
@@ -101,6 +97,7 @@ def scrape_myauto_direct():
 
 def send_to_telegram(title, price, link, details):
     caption = (
+        f"🚗 **آگهی جدید پیدا شد!**\n\n"
         f"📌 **نام خودرو:** {title}\n"
         f"💰 **قیمت:** {price}\n"
         f"⚙️ **گیربکس:** {details['gear']}\n"
