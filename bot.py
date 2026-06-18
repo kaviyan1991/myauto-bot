@@ -52,9 +52,12 @@ def scrape_myauto_direct():
                     if not car_id or car_id in sent_cars: 
                         continue # رد کردن آگهی‌های تکراری ارسال شده
                     
-                    # 🔑 فیلتر حرفه‌ای کد شاسی (VIN): حذف شاسی‌هایی که با عدد شروع می‌شوند
+                    # 🔑 فیلتر هوشمند کد شاسی (VIN): حذف ستاره‌ها برای پیدا کردن اولین کاراکتر واقعی
                     vin_code = str(item.get("vin", "")).strip()
-                    if vin_code and vin_code[0].isdigit(): 
+                    actual_vin = vin_code.replace("*", "") # حذف تمام ستاره‌های ماسک شده
+                    
+                    # اگر کد شاسی واقعی وجود داشت و با هر عددی شروع می‌شد، آگهی رد شود
+                    if actual_vin and actual_vin[0].isdigit(): 
                         continue
                     
                     # 📊 فیلتر سخت‌گیرانه سال ساخت (بالای ۲۰۱۶ تا ۲۰۲۶)
