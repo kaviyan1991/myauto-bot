@@ -7,11 +7,15 @@ CHANNEL_ID = "@GeorgIranRadar"
 API_URL = "https://api2.myauto.ge/en/products"
 CACHE_FILE = "sent_cars.txt"
 
+# 🎯 کد جدید و ضد ارور برای مدیریت حافظه ربات
 def load_cache():
-    if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, "r") as f:
-            return set(f.read().splitlines())
-    return set()
+    if not os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "w") as f:
+            f.write("")
+        return set()
+        
+    with open(CACHE_FILE, "r") as f:
+        return set(f.read().splitlines())
 
 def save_cache(sent_cars):
     with open(CACHE_FILE, "w") as f:
@@ -24,7 +28,7 @@ def scrape_myauto_direct():
     params = {
         "TypeID": "0", "ForRent": "0", "CurrencyID": "3", "Page": "1",
         "PriceFrom": "6000", "PriceTo": "35000", 
-        "YearFrom": "2017", "YearTo": "2026", # سال ساخت بالای ۲۰۱۶ (از ۲۰۱۷ تا ۲۰۲۶)
+        "YearFrom": "2017", "YearTo": "2026", # سال ساخت از ۲۰۱۷ تا ۲۰۲۶
         "LocID": "2", "HasVin": "1", "HideNegotiable": "1", "FuelTypeID": "1,3,6"
     }
     
@@ -50,17 +54,16 @@ def scrape_myauto_direct():
                 try:
                     car_id = str(item.get("car_id"))
                     if not car_id or car_id in sent_cars: 
-                        continue # رد کردن آگهی‌های تکراری ارسال شده
+                        continue
                     
-                    # 🔑 فیلتر هوشمند کد شاسی (VIN): حذف ستاره‌ها برای پیدا کردن اولین کاراکتر واقعی
+                    # 🔑 فیلتر هوشمند کد شاسی (VIN): حذف ستاره‌ها برای خنثی کردن فریب فایروال
                     vin_code = str(item.get("vin", "")).strip()
-                    actual_vin = vin_code.replace("*", "") # حذف تمام ستاره‌های ماسک شده
+                    actual_vin = vin_code.replace("*", "") 
                     
-                    # اگر کد شاسی واقعی وجود داشت و با هر عددی شروع می‌شد، آگهی رد شود
                     if actual_vin and actual_vin[0].isdigit(): 
                         continue
                     
-                    # 📊 فیلتر سخت‌گیرانه سال ساخت (بالای ۲۰۱۶ تا ۲۰۲۶)
+                    # 📊 فیلتر سال ساخت
                     prod_year = item.get("prod_year", "")
                     if prod_year:
                         try:
@@ -83,10 +86,8 @@ def scrape_myauto_direct():
                         "gear": gear_types.get(str(item.get("gear_type_id")), "اتوماتیک")
                     }
                     
-                    # ارسال به تلگرام
                     send_to_telegram(title, price, link, details)
                     
-                    # اضافه کردن به حافظه برای عدم ارسال مجدد
                     sent_cars.add(car_id)
                     cache_updated = True
                 except: 
