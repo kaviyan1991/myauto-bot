@@ -2,8 +2,8 @@ name: Run MyAuto Bot
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # اجرای خودکار هر ۵ دقیقه یک‌بار
-  workflow_dispatch: # امکان اجرای دستی ربات
+    - cron: '*/10 * * * *' # تغییر زمان‌بندی به دقیقاً هر ۱۰ دقیقه یک‌بار
+  workflow_dispatch:
 
 jobs:
   run-bot:
@@ -11,6 +11,13 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Download Cache (sent cars list)
+        uses: actions/download-artifact@v4
+        with:
+          name: bot-cache
+          path: .
+        continue-on-error: true # در اولین اجرا اگر فایلی نبود خطا ندهد
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,3 +29,10 @@ jobs:
 
       - name: Run Script
         run: python bot.py
+
+      - name: Upload/Update Cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-cache
+          path: sent_cars.txt
+          retention-days: 7 # فایل کش تا ۷ روز در سرور بماند
