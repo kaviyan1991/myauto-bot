@@ -23,11 +23,12 @@ def scrape_myauto_direct():
     print("Checking MyAuto with professional filters...")
     sent_cars = load_cache()
     
+    # 🛠️ حذف "HasVin": "1" از پارامترها برای دریافت همه خودروها (با شاسی و بدون شاسی)
     params = {
         "TypeID": "0", "ForRent": "0", "CurrencyID": "3", "Page": "1",
         "PriceFrom": "6000", "PriceTo": "35000", 
         "YearFrom": "2017", "YearTo": "2026",
-        "LocID": "2", "HasVin": "1", "HideNegotiable": "1", "FuelTypeID": "1,3,6"
+        "LocID": "2", "HideNegotiable": "1", "FuelTypeID": "1,3,6"
     }
     
     headers = {
@@ -53,13 +54,13 @@ def scrape_myauto_direct():
                     if not car_id or car_id in sent_cars: 
                         continue
                     
-                    # 🔑 فیلتر نهایی VIN: حذف ستاره‌ها و چک کردن دقیق کاراکتر اول
+                    # 🔑 فیلتر VIN هوشمند جدید (حتی اگر VIN خالی باشد، ماشین ارسال می‌شود)
                     vin_code = str(item.get("vin", "")).strip()
-                    actual_vin = vin_code.replace("*", "") 
                     
-                    # اگر کاراکتر اول بعد از حذف ستاره‌ها عدد بود (0 تا 9)، آگهی رد می‌شود
-                    if actual_vin and actual_vin[0] in "0123456789": 
-                        continue
+                    if vin_code: # فقط اگر ماشین کد شاسی داشت، فیلتر عددی بررسی شود
+                        actual_vin = vin_code.replace("*", "") 
+                        if actual_vin and actual_vin[0] in "0123456789": 
+                            continue
                     
                     prod_year = item.get("prod_year", "")
                     if prod_year:
@@ -97,7 +98,6 @@ def scrape_myauto_direct():
 
 def send_to_telegram(title, price, link, details):
     caption = (
-        f"🚗 **آگهی جدید پیدا شد!**\n\n"
         f"📌 **نام خودرو:** {title}\n"
         f"💰 **قیمت:** {price}\n"
         f"⚙️ **گیربکس:** {details['gear']}\n"
